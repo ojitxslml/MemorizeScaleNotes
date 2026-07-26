@@ -1,0 +1,1070 @@
+---
+/**
+ * ScaleTrainer — Interactive musical scale note memorization component.
+ * 
+ * Modes:
+ *  1. Setup   — Wizard: Step 1 (root note) → Step 2 (scale type) → Confirm
+ *  2. Learn   — Review the notes in the scale
+ *  3. Quiz    — Guess each degree of the scale
+ *  4. Results — Score summary with option to retry
+ */
+---
+
+<div id="app" class="h-dvh flex flex-col overflow-hidden">
+  <!-- ───────── Header ───────── -->
+  <header class="shrink-0 border-b border-surface-800/60 backdrop-blur-md bg-surface-950/60 z-50">
+    <div class="max-w-5xl mx-auto px-4 py-3 flex items-center justify-between">
+      <div class="flex items-center gap-2.5">
+        <div class="w-9 h-9 rounded-xl bg-gradient-to-br from-accent-500 to-purple-500 flex items-center justify-center text-base shadow-lg shadow-accent-500/20">
+          ♪
+        </div>
+        <div>
+          <h1 class="text-base font-bold tracking-tight leading-tight">Scale Notes</h1>
+          <p class="text-[10px] text-surface-400 leading-tight">Memorization Trainer</p>
+        </div>
+      </div>
+      <div id="header-stats" class="hidden items-center gap-3 text-xs">
+        <div class="flex items-center gap-1">
+          <span class="text-surface-400">Streak</span>
+          <span id="streak-count" class="font-mono font-bold text-accent-400">0</span>
+        </div>
+        <div class="flex items-center gap-1">
+          <span class="text-surface-400">Best</span>
+          <span id="best-streak" class="font-mono font-bold text-surface-200">0</span>
+        </div>
+      </div>
+      <!-- Back button for learn screen -->
+      <button id="btn-header-back" class="hidden items-center gap-1 text-xs text-surface-400 hover:text-surface-200 transition-colors">
+        <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 19l-7-7 7-7"/></svg>
+        Back
+      </button>
+    </div>
+  </header>
+
+  <!-- ───────── Main Content ───────── -->
+  <main class="flex-1 flex flex-col min-h-0 overflow-y-auto">
+
+    <!-- ===== SETUP SCREEN — WIZARD ===== -->
+    <section id="screen-setup" class="flex-1 flex flex-col animate-fade-in">
+      
+      <!-- Step 1: Root Note -->
+      <div id="setup-step-1" class="flex-1 flex flex-col px-4 sm:px-6 py-6 sm:py-10 max-w-lg mx-auto w-full">
+        <div class="text-center mb-6">
+          <div class="inline-flex items-center gap-1.5 text-[10px] font-semibold text-surface-500 uppercase tracking-widest mb-2">
+            <span class="w-5 h-5 rounded-full bg-accent-500 text-white flex items-center justify-center text-[10px] font-bold">1</span>
+            <span class="w-8 h-px bg-surface-700"></span>
+            <span class="w-5 h-5 rounded-full bg-surface-800 text-surface-500 flex items-center justify-center text-[10px]">2</span>
+          </div>
+          <h2 class="text-2xl sm:text-3xl font-extrabold tracking-tight mb-1">
+            Pick a <span class="bg-gradient-to-r from-accent-400 to-purple-400 bg-clip-text text-transparent">root note</span>
+          </h2>
+          <p class="text-surface-400 text-sm">The starting note of your scale</p>
+        </div>
+
+        <div class="flex-1 flex items-center">
+          <div id="root-note-grid" class="grid grid-cols-4 sm:grid-cols-6 gap-2 w-full">
+            <!-- Filled by JS -->
+          </div>
+        </div>
+      </div>
+
+      <!-- Step 2: Scale Type -->
+      <div id="setup-step-2" class="hidden flex-1 flex flex-col px-4 sm:px-6 py-6 sm:py-10 max-w-lg mx-auto w-full">
+        <div class="text-center mb-4">
+          <div class="inline-flex items-center gap-1.5 text-[10px] font-semibold text-surface-500 uppercase tracking-widest mb-2">
+            <span class="w-5 h-5 rounded-full bg-accent-500/30 text-accent-400 flex items-center justify-center text-[10px] font-bold">✓</span>
+            <span class="w-8 h-px bg-accent-500/30"></span>
+            <span class="w-5 h-5 rounded-full bg-accent-500 text-white flex items-center justify-center text-[10px] font-bold">2</span>
+          </div>
+          <h2 class="text-2xl sm:text-3xl font-extrabold tracking-tight mb-1">
+            Choose a <span class="bg-gradient-to-r from-accent-400 to-purple-400 bg-clip-text text-transparent">scale</span>
+          </h2>
+          <p class="text-surface-400 text-sm">
+            Root: <span id="step2-root-label" class="font-bold text-accent-400"></span>
+            <button id="btn-change-root" class="ml-2 text-surface-500 underline underline-offset-2 hover:text-surface-300 transition-colors text-xs">change</button>
+          </p>
+        </div>
+
+        <div class="flex-1 overflow-y-auto -mx-4 px-4 pb-2" id="scale-list-scroll">
+          <div id="scale-type-list" class="grid grid-cols-1 gap-1.5">
+            <!-- Filled by JS -->
+          </div>
+        </div>
+      </div>
+
+      <!-- Step 3: Confirm -->
+      <div id="setup-step-3" class="hidden flex-1 flex flex-col justify-center px-4 sm:px-6 py-6 sm:py-10 max-w-lg mx-auto w-full">
+        <div class="text-center mb-6">
+          <h2 class="text-2xl sm:text-3xl font-extrabold tracking-tight mb-1" id="confirm-title"></h2>
+          <p class="text-surface-400 text-sm">
+            <button id="btn-change-scale" class="text-surface-500 underline underline-offset-2 hover:text-surface-300 transition-colors text-xs">change selection</button>
+          </p>
+        </div>
+
+        <!-- Scale Preview -->
+        <div class="mb-4 p-5 rounded-2xl bg-surface-900/60 border border-surface-800/60">
+          <p class="text-[10px] text-surface-400 uppercase tracking-wider mb-3 font-semibold">Scale Notes</p>
+          <div id="preview-notes" class="flex flex-wrap gap-2 justify-center"></div>
+        </div>
+
+        <!-- Quiz Options -->
+        <div class="mb-6 flex items-center justify-between p-4 rounded-2xl bg-surface-900/60 border border-surface-800/60">
+          <div>
+            <p class="text-sm font-medium text-surface-200">Random Order</p>
+            <p class="text-[10px] text-surface-500">Shuffle the degree order each quiz</p>
+          </div>
+          <button id="toggle-random" type="button" role="switch" aria-checked="false" class="relative w-11 h-6 rounded-full bg-surface-700 transition-colors duration-200 shrink-0">
+            <span id="toggle-random-dot" class="absolute top-0.5 left-0.5 w-5 h-5 rounded-full bg-surface-300 transition-all duration-200 shadow-sm"></span>
+          </button>
+        </div>
+
+        <!-- Action Buttons -->
+        <div class="flex flex-col gap-2.5">
+          <button
+            id="btn-start-quiz"
+            class="w-full py-4 px-6 rounded-2xl font-bold text-base bg-gradient-to-r from-accent-500 to-purple-500 text-white shadow-lg shadow-accent-500/25 hover:shadow-accent-500/40 hover:brightness-110 transition-all duration-200 active:scale-[0.98]"
+          >
+            Start Quiz
+          </button>
+          <button
+            id="btn-learn"
+            class="w-full py-3.5 px-6 rounded-2xl font-semibold text-sm border border-surface-700 bg-surface-900 text-surface-300 hover:bg-surface-800 hover:border-surface-600 transition-all duration-200 active:scale-[0.98]"
+          >
+            Learn First
+          </button>
+        </div>
+      </div>
+    </section>
+
+    <!-- ===== LEARN SCREEN ===== -->
+    <section id="screen-learn" class="hidden flex-1 flex flex-col animate-fade-in">
+      <div class="flex-1 overflow-y-auto px-4 sm:px-6 py-6 max-w-2xl mx-auto w-full">
+        <div class="text-center mb-5">
+          <p class="text-accent-400 font-medium text-xs uppercase tracking-widest mb-1">Learn Mode</p>
+          <h2 id="learn-title" class="text-xl sm:text-2xl font-extrabold tracking-tight mb-1"></h2>
+          <p class="text-surface-400 text-xs">Tap a note to hear it. Study, then quiz yourself.</p>
+        </div>
+
+        <!-- Play Scale Button -->
+        <div class="flex justify-center mb-4">
+          <button id="btn-play-scale" class="inline-flex items-center gap-1.5 py-2 px-4 rounded-full text-xs font-semibold bg-surface-900 border border-surface-700 text-surface-300 hover:bg-surface-800 hover:border-surface-500 transition-all duration-200 active:scale-95">
+            <svg class="w-3.5 h-3.5" fill="currentColor" viewBox="0 0 20 20"><path d="M6.3 2.841A1.5 1.5 0 004 4.11V15.89a1.5 1.5 0 002.3 1.269l9.344-5.89a1.5 1.5 0 000-2.538L6.3 2.84z"/></svg>
+            Play Scale
+          </button>
+        </div>
+
+
+        <!-- Piano Visual (hidden on very small screens) -->
+        <div class="mb-5 overflow-x-auto pb-2 hidden sm:block">
+          <div id="piano-container" class="flex justify-center gap-0.5 min-w-fit mx-auto">
+            <!-- Piano keys rendered by JS -->
+          </div>
+        </div>
+
+        <!-- Note Cards -->
+        <div class="mb-5">
+          <p class="text-[10px] text-surface-400 uppercase tracking-wider mb-2 text-center font-semibold">Scale Degrees</p>
+          <div id="learn-notes-grid" class="grid grid-cols-4 sm:grid-cols-8 gap-2">
+            <!-- Filled by JS -->
+          </div>
+        </div>
+
+        <!-- Intervals -->
+        <div class="mb-5 p-3 rounded-xl bg-surface-900/60 border border-surface-800/60">
+          <p class="text-[10px] text-surface-400 uppercase tracking-wider mb-2 font-semibold">Interval Pattern</p>
+          <div id="interval-display" class="flex flex-wrap items-center gap-1 font-mono text-xs"></div>
+        </div>
+      </div>
+
+      <!-- Sticky bottom CTA -->
+      <div class="shrink-0 px-4 sm:px-6 py-3 border-t border-surface-800/40 bg-surface-950/80 backdrop-blur-md">
+        <div class="max-w-2xl mx-auto flex gap-2">
+          <button id="btn-back-setup" class="py-3 px-5 rounded-xl font-semibold text-sm border border-surface-700 bg-surface-900 text-surface-300 hover:bg-surface-800 hover:border-surface-600 transition-all duration-200 active:scale-[0.98]">
+            ←
+          </button>
+          <button id="btn-start-quiz-from-learn" class="flex-1 py-3 px-6 rounded-xl font-bold text-sm bg-gradient-to-r from-accent-500 to-purple-500 text-white shadow-lg shadow-accent-500/25 hover:shadow-accent-500/40 hover:brightness-110 transition-all duration-200 active:scale-[0.98]">
+            I'm Ready — Start Quiz
+          </button>
+        </div>
+      </div>
+    </section>
+
+    <!-- ===== QUIZ SCREEN ===== -->
+    <section id="screen-quiz" class="hidden flex-1 flex flex-col animate-fade-in">
+      <!-- Top info area -->
+      <div class="shrink-0 px-4 sm:px-6 pt-4 pb-2 max-w-lg mx-auto w-full">
+        <p id="quiz-scale-label" class="text-accent-400 font-medium text-[10px] uppercase tracking-widest text-center mb-1"></p>
+        <div class="flex items-center justify-between mb-2">
+          <span id="quiz-progress-text" class="text-[10px] text-surface-400 font-mono"></span>
+          <div class="flex items-center gap-4 text-xs text-surface-400">
+            <div class="flex items-center gap-1">
+              <svg class="w-3.5 h-3.5 text-correct" fill="currentColor" viewBox="0 0 20 20"><path fill-rule="evenodd" d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z" clip-rule="evenodd"/></svg>
+              <span id="quiz-correct-count" class="font-mono font-bold text-correct">0</span>
+            </div>
+            <div class="flex items-center gap-1">
+              <svg class="w-3.5 h-3.5 text-wrong" fill="currentColor" viewBox="0 0 20 20"><path fill-rule="evenodd" d="M4.293 4.293a1 1 0 011.414 0L10 8.586l4.293-4.293a1 1 0 111.414 1.414L11.414 10l4.293 4.293a1 1 0 01-1.414 1.414L10 11.414l-4.293 4.293a1 1 0 01-1.414-1.414L8.586 10 4.293 5.707a1 1 0 010-1.414z" clip-rule="evenodd"/></svg>
+              <span id="quiz-wrong-count" class="font-mono font-bold text-wrong">0</span>
+            </div>
+          </div>
+        </div>
+        <!-- Progress Bar -->
+        <div class="w-full h-1 bg-surface-800 rounded-full overflow-hidden">
+          <div id="quiz-progress-bar" class="h-full bg-gradient-to-r from-accent-500 to-purple-500 rounded-full transition-all duration-500 ease-out" style="width: 0%"></div>
+        </div>
+      </div>
+
+      <!-- Question Card — centered in remaining space -->
+      <div class="flex-1 flex flex-col justify-center px-4 sm:px-6 max-w-lg mx-auto w-full">
+        <div id="quiz-card" class="relative p-6 sm:p-8 rounded-2xl bg-surface-900/80 border border-surface-800/60 backdrop-blur-sm shadow-2xl shadow-black/20 mb-4">
+          <div class="absolute top-3 right-3 text-[10px] text-surface-500 font-mono" id="quiz-degree-label"></div>
+          <p class="text-surface-400 text-xs mb-1">What is the</p>
+          <p id="quiz-question" class="text-3xl sm:text-4xl font-black tracking-tight mb-0.5"></p>
+          <p id="quiz-question-sub" class="text-surface-400 text-xs"></p>
+
+          <!-- Feedback Overlay -->
+          <div id="quiz-feedback" class="hidden absolute inset-0 rounded-2xl flex items-center justify-center">
+            <div id="quiz-feedback-content" class="text-center">
+              <div id="quiz-feedback-icon" class="text-5xl mb-1"></div>
+              <p id="quiz-feedback-text" class="text-lg font-bold"></p>
+              <p id="quiz-feedback-detail" class="text-xs mt-0.5 opacity-70"></p>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- Answer Buttons — pinned to bottom -->
+      <div class="shrink-0 px-4 sm:px-6 pb-4 pt-2 bg-surface-950/80 backdrop-blur-md border-t border-surface-800/30">
+        <div id="quiz-answers" class="grid grid-cols-4 sm:grid-cols-6 gap-1.5 max-w-lg mx-auto">
+          <!-- Filled by JS -->
+        </div>
+      </div>
+    </section>
+
+    <!-- ===== RESULTS SCREEN ===== -->
+    <section id="screen-results" class="hidden flex-1 flex flex-col animate-fade-in overflow-y-auto">
+      <div class="flex-1 px-4 sm:px-6 py-6 max-w-lg mx-auto w-full">
+        <div class="text-center mb-6">
+          <div id="results-emoji" class="text-5xl mb-3 animate-pop"></div>
+          <h2 id="results-title" class="text-2xl sm:text-3xl font-extrabold tracking-tight mb-1"></h2>
+          <p id="results-subtitle" class="text-surface-400 text-sm"></p>
+        </div>
+
+        <!-- Score Ring -->
+        <div class="flex justify-center mb-6">
+          <div class="relative w-32 h-32">
+            <svg class="w-full h-full -rotate-90" viewBox="0 0 120 120">
+              <circle cx="60" cy="60" r="52" fill="none" stroke-width="8" class="stroke-surface-800"/>
+              <circle id="score-ring" cx="60" cy="60" r="52" fill="none" stroke-width="8" stroke-linecap="round" class="stroke-accent-500 transition-all duration-1000 ease-out" style="stroke-dasharray: 326.73; stroke-dashoffset: 326.73;"/>
+            </svg>
+            <div class="absolute inset-0 flex flex-col items-center justify-center">
+              <span id="score-percent" class="text-3xl font-black tracking-tight">0%</span>
+              <span class="text-[10px] text-surface-400">accuracy</span>
+            </div>
+          </div>
+        </div>
+
+        <!-- Stats Grid -->
+        <div class="grid grid-cols-3 gap-2 mb-6">
+          <div class="p-3 rounded-xl bg-surface-900/60 border border-surface-800/60 text-center">
+            <p class="text-xl font-bold text-correct" id="result-correct">0</p>
+            <p class="text-[10px] text-surface-400 mt-0.5">Correct</p>
+          </div>
+          <div class="p-3 rounded-xl bg-surface-900/60 border border-surface-800/60 text-center">
+            <p class="text-xl font-bold text-wrong" id="result-wrong">0</p>
+            <p class="text-[10px] text-surface-400 mt-0.5">Wrong</p>
+          </div>
+          <div class="p-3 rounded-xl bg-surface-900/60 border border-surface-800/60 text-center">
+            <p class="text-xl font-bold text-accent-400" id="result-time">0s</p>
+            <p class="text-[10px] text-surface-400 mt-0.5">Time</p>
+          </div>
+        </div>
+
+        <!-- Missed Notes -->
+        <div id="missed-notes-section" class="hidden mb-6 p-3 rounded-xl bg-surface-900/60 border border-wrong-dim/30">
+          <p class="text-[10px] text-wrong uppercase tracking-wider mb-2 font-semibold">Notes to Review</p>
+          <div id="missed-notes-list" class="flex flex-wrap gap-1.5"></div>
+        </div>
+
+        <!-- Actions -->
+        <div class="flex flex-col gap-2">
+          <button id="btn-retry" class="w-full py-3.5 px-6 rounded-xl font-bold text-sm bg-gradient-to-r from-accent-500 to-purple-500 text-white shadow-lg shadow-accent-500/25 hover:shadow-accent-500/40 hover:brightness-110 transition-all duration-200 active:scale-[0.98]">
+            Try Again
+          </button>
+          <button id="btn-new-scale" class="w-full py-3 px-6 rounded-xl font-semibold text-sm border border-surface-700 bg-surface-900 text-surface-300 hover:bg-surface-800 hover:border-surface-600 transition-all duration-200 active:scale-[0.98]">
+            New Scale
+          </button>
+        </div>
+      </div>
+    </section>
+  </main>
+</div>
+
+<script>
+  // ────────────────────────────────────────────────────
+  // MUSIC DATA
+  // ────────────────────────────────────────────────────
+  const ALL_NOTES = ['C', 'C#', 'D', 'D#', 'E', 'F', 'F#', 'G', 'G#', 'A', 'A#', 'B'];
+
+  const ENHARMONIC_MAP: Record<string, string> = {
+    'C#': 'Db', 'D#': 'Eb', 'F#': 'Gb', 'G#': 'Ab', 'A#': 'Bb',
+  };
+
+  const SCALES: Record<string, { intervals: number[]; degreeNames: string[] }> = {
+    'Major (Ionian)': {
+      intervals: [2, 2, 1, 2, 2, 2, 1],
+      degreeNames: ['1st', '2nd', '3rd', '4th', '5th', '6th', '7th'],
+    },
+    'Natural Minor (Aeolian)': {
+      intervals: [2, 1, 2, 2, 1, 2, 2],
+      degreeNames: ['1st', '2nd', '♭3rd', '4th', '5th', '♭6th', '♭7th'],
+    },
+    'Harmonic Minor': {
+      intervals: [2, 1, 2, 2, 1, 3, 1],
+      degreeNames: ['1st', '2nd', '♭3rd', '4th', '5th', '♭6th', '7th'],
+    },
+    'Melodic Minor (asc.)': {
+      intervals: [2, 1, 2, 2, 2, 2, 1],
+      degreeNames: ['1st', '2nd', '♭3rd', '4th', '5th', '6th', '7th'],
+    },
+    'Dorian': {
+      intervals: [2, 1, 2, 2, 2, 1, 2],
+      degreeNames: ['1st', '2nd', '♭3rd', '4th', '5th', '6th', '♭7th'],
+    },
+    'Phrygian': {
+      intervals: [1, 2, 2, 2, 1, 2, 2],
+      degreeNames: ['1st', '♭2nd', '♭3rd', '4th', '5th', '♭6th', '♭7th'],
+    },
+    'Lydian': {
+      intervals: [2, 2, 2, 1, 2, 2, 1],
+      degreeNames: ['1st', '2nd', '3rd', '#4th', '5th', '6th', '7th'],
+    },
+    'Mixolydian': {
+      intervals: [2, 2, 1, 2, 2, 1, 2],
+      degreeNames: ['1st', '2nd', '3rd', '4th', '5th', '6th', '♭7th'],
+    },
+    'Locrian': {
+      intervals: [1, 2, 2, 1, 2, 2, 2],
+      degreeNames: ['1st', '♭2nd', '♭3rd', '4th', '♭5th', '♭6th', '♭7th'],
+    },
+    'Major Pentatonic': {
+      intervals: [2, 2, 3, 2, 3],
+      degreeNames: ['1st', '2nd', '3rd', '5th', '6th'],
+    },
+    'Minor Pentatonic': {
+      intervals: [3, 2, 2, 3, 2],
+      degreeNames: ['1st', '♭3rd', '4th', '5th', '♭7th'],
+    },
+    'Blues': {
+      intervals: [3, 2, 1, 1, 3, 2],
+      degreeNames: ['1st', '♭3rd', '4th', '♭5th', '5th', '♭7th'],
+    },
+    'Whole Tone': {
+      intervals: [2, 2, 2, 2, 2, 2],
+      degreeNames: ['1st', '2nd', '3rd', '#4th', '#5th', '♭7th'],
+    },
+    'Diminished (H-W)': {
+      intervals: [1, 2, 1, 2, 1, 2, 1, 2],
+      degreeNames: ['1st', '♭2nd', '♭3rd', '3rd', '♭5th', '5th', '6th', '♭7th'],
+    },
+  };
+
+  const INTERVAL_NAMES: Record<number, string> = { 1: 'H', 2: 'W', 3: 'W+H' };
+
+  // Use flats for these roots
+  const FLAT_ROOTS = new Set(['F', 'Bb', 'Eb', 'Ab', 'Db', 'Gb']);
+
+  // ────────────────────────────────────────────────────
+  // STATE
+  // ────────────────────────────────────────────────────
+  let selectedRoot: string | null = null;
+  let selectedScale: string | null = null;
+  let scaleNotes: string[] = [];
+  let quizIndex = 0;
+  let correctCount = 0;
+  let wrongCount = 0;
+  let missedNotes: { degree: string; expected: string; answered: string }[] = [];
+  let quizStartTime = 0;
+  let streak = 0;
+  let bestStreak = parseInt(localStorage.getItem('sn_best_streak') || '0');
+  let isAnswering = false;
+  let randomOrder = false;
+  let quizOrder: number[] = [];
+
+  // ────────────────────────────────────────────────────
+  // AUDIO — Web Audio API Piano Synth
+  // ────────────────────────────────────────────────────
+  let audioCtx: AudioContext | null = null;
+
+  // Note frequencies for octave 4 (middle octave)
+  const NOTE_FREQ: Record<string, number> = {
+    'C': 261.63, 'C#': 277.18, 'Db': 277.18,
+    'D': 293.66, 'D#': 311.13, 'Eb': 311.13,
+    'E': 329.63,
+    'F': 349.23, 'F#': 369.99, 'Gb': 369.99,
+    'G': 392.00, 'G#': 415.30, 'Ab': 415.30,
+    'A': 440.00, 'A#': 466.16, 'Bb': 466.16,
+    'B': 493.88,
+  };
+
+  function getAudioCtx(): AudioContext {
+    if (!audioCtx) {
+      audioCtx = new AudioContext();
+    }
+    if (audioCtx.state === 'suspended') {
+      audioCtx.resume();
+    }
+    return audioCtx;
+  }
+
+  function playNote(noteName: string, duration = 0.6) {
+    const ctx = getAudioCtx();
+    const freq = NOTE_FREQ[noteName];
+    if (!freq) return;
+
+    const now = ctx.currentTime;
+
+    // Master gain
+    const master = ctx.createGain();
+    master.gain.setValueAtTime(0, now);
+    // ADSR envelope
+    master.gain.linearRampToValueAtTime(0.35, now + 0.008);  // Attack
+    master.gain.linearRampToValueAtTime(0.25, now + 0.08);   // Decay
+    master.gain.setValueAtTime(0.25, now + duration * 0.5);   // Sustain
+    master.gain.exponentialRampToValueAtTime(0.001, now + duration); // Release
+    master.connect(ctx.destination);
+
+    // Oscillator 1 — Triangle (warm fundamental)
+    const osc1 = ctx.createOscillator();
+    osc1.type = 'triangle';
+    osc1.frequency.setValueAtTime(freq, now);
+    const g1 = ctx.createGain();
+    g1.gain.setValueAtTime(0.6, now);
+    osc1.connect(g1).connect(master);
+    osc1.start(now);
+    osc1.stop(now + duration + 0.05);
+
+    // Oscillator 2 — Sine (soft overtone)
+    const osc2 = ctx.createOscillator();
+    osc2.type = 'sine';
+    osc2.frequency.setValueAtTime(freq * 2, now); // 1st harmonic
+    const g2 = ctx.createGain();
+    g2.gain.setValueAtTime(0.15, now);
+    g2.gain.exponentialRampToValueAtTime(0.001, now + duration * 0.7);
+    osc2.connect(g2).connect(master);
+    osc2.start(now);
+    osc2.stop(now + duration + 0.05);
+
+    // Oscillator 3 — Sine (2nd harmonic, subtle shimmer)
+    const osc3 = ctx.createOscillator();
+    osc3.type = 'sine';
+    osc3.frequency.setValueAtTime(freq * 3, now);
+    const g3 = ctx.createGain();
+    g3.gain.setValueAtTime(0.05, now);
+    g3.gain.exponentialRampToValueAtTime(0.001, now + duration * 0.4);
+    osc3.connect(g3).connect(master);
+    osc3.start(now);
+    osc3.stop(now + duration + 0.05);
+  }
+
+  function playNoteSequence(notes: string[], intervalMs = 250) {
+    notes.forEach((note, i) => {
+      setTimeout(() => playNote(note, 0.5), i * intervalMs);
+    });
+  }
+
+  // ────────────────────────────────────────────────────
+  // HELPERS
+  // ────────────────────────────────────────────────────
+  function getScaleNotes(root: string, scaleType: string): string[] {
+    const scale = SCALES[scaleType];
+    if (!scale) return [];
+    const rootIdx = ALL_NOTES.indexOf(root.replace('b', '#').replace('Db', 'C#').replace('Eb', 'D#').replace('Gb', 'F#').replace('Ab', 'G#').replace('Bb', 'A#'));
+    
+    const useFlats = FLAT_ROOTS.has(root) || root.includes('b');
+    
+    const notes: string[] = [];
+    let idx = ALL_NOTES.indexOf(root) !== -1 ? ALL_NOTES.indexOf(root) : rootIdx;
+    
+    if (root.includes('b')) {
+      const sharpEquiv = Object.entries(ENHARMONIC_MAP).find(([_, v]) => v === root)?.[0];
+      if (sharpEquiv) idx = ALL_NOTES.indexOf(sharpEquiv);
+    }
+    
+    notes.push(useFlats && ENHARMONIC_MAP[ALL_NOTES[idx]] ? ENHARMONIC_MAP[ALL_NOTES[idx]] : ALL_NOTES[idx]);
+    
+    for (const interval of scale.intervals) {
+      idx = (idx + interval) % 12;
+      const note = ALL_NOTES[idx];
+      notes.push(useFlats && ENHARMONIC_MAP[note] ? ENHARMONIC_MAP[note] : note);
+    }
+    return notes.slice(0, scale.intervals.length);
+  }
+
+  function getNoteColor(note: string): string {
+    const base = note.replace('#', '').replace('b', '');
+    const colors: Record<string, string> = {
+      C: 'from-note-c to-note-c/70',
+      D: 'from-note-d to-note-d/70',
+      E: 'from-note-e to-note-e/70',
+      F: 'from-note-f to-note-f/70',
+      G: 'from-note-g to-note-g/70',
+      A: 'from-note-a to-note-a/70',
+      B: 'from-note-b to-note-b/70',
+    };
+    return colors[base] || 'from-surface-400 to-surface-500';
+  }
+
+  function getNoteColorSolid(note: string): string {
+    const base = note.replace('#', '').replace('b', '');
+    const colors: Record<string, string> = {
+      C: 'bg-note-c', D: 'bg-note-d', E: 'bg-note-e', F: 'bg-note-f',
+      G: 'bg-note-g', A: 'bg-note-a', B: 'bg-note-b',
+    };
+    return colors[base] || 'bg-surface-400';
+  }
+
+  function showScreen(id: string) {
+    ['screen-setup', 'screen-learn', 'screen-quiz', 'screen-results'].forEach((s) => {
+      const el = document.getElementById(s);
+      if (el) {
+        el.classList.add('hidden');
+        el.classList.remove('animate-fade-in');
+      }
+    });
+    const target = document.getElementById(id);
+    if (target) {
+      target.classList.remove('hidden');
+      void target.offsetWidth;
+      target.classList.add('animate-fade-in');
+    }
+
+    // Show/hide header elements
+    const headerBack = document.getElementById('btn-header-back')!;
+    const headerStats = document.getElementById('header-stats')!;
+    
+    if (id === 'screen-learn') {
+      headerBack.classList.remove('hidden');
+      headerBack.classList.add('flex');
+      headerStats.classList.add('hidden');
+      headerStats.classList.remove('flex');
+    } else if (id === 'screen-quiz') {
+      headerBack.classList.add('hidden');
+      headerBack.classList.remove('flex');
+      headerStats.classList.remove('hidden');
+      headerStats.classList.add('flex');
+    } else {
+      headerBack.classList.add('hidden');
+      headerBack.classList.remove('flex');
+      headerStats.classList.add('hidden');
+      headerStats.classList.remove('flex');
+    }
+  }
+
+  function showSetupStep(step: number) {
+    ['setup-step-1', 'setup-step-2', 'setup-step-3'].forEach((s) => {
+      document.getElementById(s)!.classList.add('hidden');
+      document.getElementById(s)!.classList.remove('flex');
+    });
+    const target = document.getElementById(`setup-step-${step}`)!;
+    target.classList.remove('hidden');
+    target.classList.add('flex');
+    void target.offsetWidth;
+    target.classList.add('animate-fade-in');
+    // Scroll to top of scale list on step 2
+    if (step === 2) {
+      document.getElementById('scale-list-scroll')?.scrollTo(0, 0);
+    }
+  }
+
+  // ────────────────────────────────────────────────────
+  // SETUP SCREEN — WIZARD
+  // ────────────────────────────────────────────────────
+  function renderSetup() {
+    // Step 1: Root notes — big tap targets
+    const rootGrid = document.getElementById('root-note-grid')!;
+    const displayNotes = ['C', 'C#', 'D', 'D#', 'E', 'F', 'F#', 'G', 'G#', 'A', 'A#', 'B'];
+    
+    rootGrid.innerHTML = displayNotes.map((note) => {
+      const isSharp = note.includes('#');
+      return `<button
+        data-root="${note}"
+        class="root-btn relative py-4 sm:py-5 rounded-xl text-base sm:text-lg font-bold transition-all duration-200 border active:scale-95
+          ${isSharp
+            ? 'bg-surface-900 border-surface-700 text-surface-300 hover:bg-surface-800 hover:border-surface-600'
+            : 'bg-surface-800 border-surface-700 text-surface-200 hover:bg-surface-700 hover:border-surface-500'}
+        "
+      >${note}</button>`;
+    }).join('');
+
+    // Step 2: Scale types
+    const scaleList = document.getElementById('scale-type-list')!;
+    scaleList.innerHTML = Object.keys(SCALES).map((name) => {
+      const noteCount = SCALES[name].intervals.length;
+      return `<button
+        data-scale="${name}"
+        class="scale-btn text-left py-3.5 px-4 rounded-xl text-sm font-medium transition-all duration-200 border border-surface-800/60 bg-surface-900/40 text-surface-300 hover:bg-surface-800/60 hover:border-surface-700 active:scale-[0.98] flex items-center justify-between"
+      >
+        <span>${name}</span>
+        <span class="text-[10px] text-surface-500 shrink-0 ml-2">${noteCount} notes</span>
+      </button>`;
+    }).join('');
+
+    // Root note click → go to step 2
+    rootGrid.addEventListener('click', (e) => {
+      const btn = (e.target as HTMLElement).closest('[data-root]') as HTMLElement;
+      if (!btn) return;
+      selectedRoot = btn.dataset.root!;
+      rootGrid.querySelectorAll('.root-btn').forEach((b) => {
+        b.classList.remove('!bg-accent-500/20', '!border-accent-500', '!text-accent-400', 'ring-2', 'ring-accent-500/30');
+      });
+      btn.classList.add('!bg-accent-500/20', '!border-accent-500', '!text-accent-400', 'ring-2', 'ring-accent-500/30');
+      
+      // Update step 2 label and go to step 2
+      document.getElementById('step2-root-label')!.textContent = selectedRoot;
+      showSetupStep(2);
+    });
+
+    // Scale type click → go to step 3 (confirm)
+    scaleList.addEventListener('click', (e) => {
+      const btn = (e.target as HTMLElement).closest('[data-scale]') as HTMLElement;
+      if (!btn) return;
+      selectedScale = btn.dataset.scale!;
+      scaleList.querySelectorAll('.scale-btn').forEach((b) => {
+        b.classList.remove('!bg-accent-500/20', '!border-accent-500', '!text-accent-400');
+      });
+      btn.classList.add('!bg-accent-500/20', '!border-accent-500', '!text-accent-400');
+      
+      // Build preview and go to confirm
+      scaleNotes = getScaleNotes(selectedRoot!, selectedScale);
+      document.getElementById('confirm-title')!.textContent = `${selectedRoot} ${selectedScale}`;
+      const previewNotes = document.getElementById('preview-notes')!;
+      previewNotes.innerHTML = scaleNotes.map((note) =>
+        `<button data-play-note="${note}" class="inline-flex items-center justify-center w-11 h-11 rounded-xl bg-gradient-to-br ${getNoteColor(note)} text-white text-sm font-bold shadow-lg cursor-pointer hover:brightness-110 active:scale-90 transition-all duration-150">${note}</button>`
+      ).join('');
+      // Bind click-to-play on preview notes
+      previewNotes.addEventListener('click', (e) => {
+        const btn = (e.target as HTMLElement).closest('[data-play-note]') as HTMLElement;
+        if (btn) playNote(btn.dataset.playNote!);
+      });
+      showSetupStep(3);
+    });
+
+    // Change root button
+    document.getElementById('btn-change-root')!.addEventListener('click', () => {
+      showSetupStep(1);
+    });
+
+    // Change scale button
+    document.getElementById('btn-change-scale')!.addEventListener('click', () => {
+      showSetupStep(2);
+    });
+  }
+
+  // ────────────────────────────────────────────────────
+  // LEARN SCREEN
+  // ────────────────────────────────────────────────────
+  function renderLearn() {
+    if (!selectedRoot || !selectedScale) return;
+
+    const scale = SCALES[selectedScale];
+    document.getElementById('learn-title')!.textContent = `${selectedRoot} ${selectedScale}`;
+
+    // Piano (desktop only via CSS hidden/block)
+    renderPiano();
+
+    // Note cards (clickable to play sound)
+    const grid = document.getElementById('learn-notes-grid')!;
+    grid.innerHTML = scaleNotes.map((note, i) => `
+      <button data-play-note="${note}" class="flex flex-col items-center p-2.5 sm:p-3 rounded-xl bg-gradient-to-br ${getNoteColor(note)} shadow-lg animate-pop cursor-pointer hover:brightness-110 active:scale-95 transition-all duration-150" style="animation-delay: ${i * 60}ms">
+        <span class="text-base sm:text-lg font-black text-white drop-shadow-md">${note}</span>
+        <span class="text-[9px] sm:text-[10px] text-white/70 font-medium mt-0.5">${scale.degreeNames[i]}</span>
+      </button>
+    `).join('');
+
+    // Bind click-to-play on note cards
+    grid.addEventListener('click', (e) => {
+      const btn = (e.target as HTMLElement).closest('[data-play-note]') as HTMLElement;
+      if (btn) playNote(btn.dataset.playNote!);
+    });
+
+    // Intervals
+    const intervalEl = document.getElementById('interval-display')!;
+    intervalEl.innerHTML = scale.intervals.map((iv, i) => {
+      const name = INTERVAL_NAMES[iv] || `${iv}`;
+      return `
+        <span class="flex items-center gap-1">
+          ${i > 0 ? '<span class="text-surface-600">→</span>' : ''}
+          <span class="px-1.5 py-0.5 rounded-md bg-surface-800 text-surface-300 text-[10px]">${name}</span>
+        </span>
+      `;
+    }).join('');
+  }
+
+  function renderPiano() {
+    const container = document.getElementById('piano-container')!;
+    const octaves = 2;
+    const pianoNotes: { note: string; isBlack: boolean }[] = [];
+    
+    for (let oct = 0; oct < octaves; oct++) {
+      ALL_NOTES.forEach((note) => {
+        pianoNotes.push({ note, isBlack: note.includes('#') });
+      });
+    }
+
+    const scaleNoteSet = new Set(scaleNotes.map((n) => {
+      if (n.includes('b')) {
+        const sharp = Object.entries(ENHARMONIC_MAP).find(([_, v]) => v === n)?.[0];
+        return sharp || n;
+      }
+      return n;
+    }));
+
+    container.innerHTML = `<div class="relative flex">` + pianoNotes.map(({ note, isBlack }) => {
+      const inScale = scaleNoteSet.has(note);
+      if (isBlack) {
+        return `<div class="relative -mx-1.5 z-10 w-5 h-20 rounded-b-md shadow-lg transition-all duration-200 ${
+          inScale
+            ? 'bg-accent-500 shadow-accent-500/40'
+            : 'bg-surface-800 border border-surface-700'
+        }"></div>`;
+      }
+      return `<div class="w-8 h-28 rounded-b-lg border border-surface-700/50 transition-all duration-200 flex items-end justify-center pb-1 ${
+        inScale
+          ? 'bg-accent-500/20 border-accent-500/50 shadow-inner shadow-accent-500/10'
+          : 'bg-surface-200/90'
+      }">
+        ${inScale ? `<span class="text-[9px] font-bold text-accent-400">${note}</span>` : ''}
+      </div>`;
+    }).join('') + `</div>`;
+  }
+
+  // ────────────────────────────────────────────────────
+  // QUIZ SCREEN
+  // ────────────────────────────────────────────────────
+  function shuffleArray<T>(arr: T[]): T[] {
+    const a = [...arr];
+    for (let i = a.length - 1; i > 0; i--) {
+      const j = Math.floor(Math.random() * (i + 1));
+      [a[i], a[j]] = [a[j], a[i]];
+    }
+    return a;
+  }
+
+  function startQuiz() {
+    if (!selectedRoot || !selectedScale) return;
+    
+    scaleNotes = getScaleNotes(selectedRoot, selectedScale);
+    quizIndex = 0;
+    correctCount = 0;
+    wrongCount = 0;
+    missedNotes = [];
+    quizStartTime = Date.now();
+    isAnswering = false;
+
+    // Build quiz order — sequential or shuffled
+    quizOrder = Array.from({ length: scaleNotes.length }, (_, i) => i);
+    if (randomOrder) {
+      quizOrder = shuffleArray(quizOrder);
+    }
+
+    document.getElementById('streak-count')!.textContent = String(streak);
+    document.getElementById('best-streak')!.textContent = String(bestStreak);
+
+    document.getElementById('quiz-scale-label')!.textContent = `${selectedRoot} ${selectedScale}${randomOrder ? ' · Shuffled' : ''}`;
+
+    showScreen('screen-quiz');
+    renderQuestion();
+  }
+
+  function renderQuestion() {
+    if (quizIndex >= quizOrder.length) {
+      showResults();
+      return;
+    }
+
+    isAnswering = false;
+    const scale = SCALES[selectedScale!];
+    const total = scaleNotes.length;
+    const progress = ((quizIndex) / total) * 100;
+    const degreeIdx = quizOrder[quizIndex];
+
+    document.getElementById('quiz-progress-text')!.textContent = `${quizIndex + 1} / ${total}`;
+    (document.getElementById('quiz-progress-bar') as HTMLElement).style.width = `${progress}%`;
+    document.getElementById('quiz-degree-label')!.textContent = `#${quizIndex + 1}`;
+    document.getElementById('quiz-question')!.textContent = `${scale.degreeNames[degreeIdx]} degree?`;
+    document.getElementById('quiz-question-sub')!.textContent = `of ${selectedRoot} ${selectedScale}`;
+    document.getElementById('quiz-correct-count')!.textContent = String(correctCount);
+    document.getElementById('quiz-wrong-count')!.textContent = String(wrongCount);
+
+    // Hide feedback
+    document.getElementById('quiz-feedback')!.classList.add('hidden');
+    document.getElementById('quiz-card')!.classList.remove('border-correct/50', 'border-wrong/50');
+
+    // Generate answer buttons — all 12 chromatic notes
+    const answersEl = document.getElementById('quiz-answers')!;
+    const displayAll = getAllDisplayNotes();
+    
+    answersEl.innerHTML = displayAll.map((note) => {
+      return `<button
+        data-answer="${note}"
+        class="answer-btn py-3.5 sm:py-3 px-2 rounded-xl text-sm font-bold transition-all duration-150 border border-surface-700 bg-surface-900/80 text-surface-200 hover:bg-surface-800 hover:border-surface-500 active:scale-95"
+      >${note}</button>`;
+    }).join('');
+
+    answersEl.addEventListener('click', handleAnswer, { once: false });
+  }
+
+  function getAllDisplayNotes(): string[] {
+    const useFlats = selectedRoot ? (FLAT_ROOTS.has(selectedRoot) || selectedRoot.includes('b')) : false;
+    if (useFlats) {
+      return ['C', 'Db', 'D', 'Eb', 'E', 'F', 'Gb', 'G', 'Ab', 'A', 'Bb', 'B'];
+    }
+    return [...ALL_NOTES];
+  }
+
+  function handleAnswer(e: Event) {
+    const btn = (e.target as HTMLElement).closest('[data-answer]') as HTMLElement;
+    if (!btn || isAnswering) return;
+    isAnswering = true;
+
+    const answer = btn.dataset.answer!;
+    const degreeIdx = quizOrder[quizIndex];
+    const expected = scaleNotes[degreeIdx];
+    const isCorrect = answer === expected;
+
+    // Play the note that was answered
+    playNote(answer, isCorrect ? 0.6 : 0.3);
+    // If wrong, also play the correct note after a short delay
+    if (!isCorrect) {
+      setTimeout(() => playNote(expected, 0.8), 600);
+    }
+
+    const feedbackEl = document.getElementById('quiz-feedback')!;
+    const feedbackIcon = document.getElementById('quiz-feedback-icon')!;
+    const feedbackText = document.getElementById('quiz-feedback-text')!;
+    const feedbackDetail = document.getElementById('quiz-feedback-detail')!;
+    const card = document.getElementById('quiz-card')!;
+
+    if (isCorrect) {
+      correctCount++;
+      streak++;
+      if (streak > bestStreak) {
+        bestStreak = streak;
+        localStorage.setItem('sn_best_streak', String(bestStreak));
+      }
+      feedbackEl.className = 'absolute inset-0 rounded-2xl flex items-center justify-center bg-correct/10 backdrop-blur-sm';
+      feedbackIcon.textContent = '✓';
+      feedbackIcon.className = 'text-5xl mb-1 text-correct';
+      feedbackText.textContent = 'Correct!';
+      feedbackText.className = 'text-lg font-bold text-correct';
+      feedbackDetail.textContent = `${expected} is the ${SCALES[selectedScale!].degreeNames[degreeIdx]} degree`;
+      card.classList.add('border-correct/50');
+      btn.classList.add('!bg-correct/20', '!border-correct', '!text-correct');
+    } else {
+      wrongCount++;
+      streak = 0;
+      missedNotes.push({
+        degree: SCALES[selectedScale!].degreeNames[degreeIdx],
+        expected,
+        answered: answer,
+      });
+      feedbackEl.className = 'absolute inset-0 rounded-2xl flex items-center justify-center bg-wrong/10 backdrop-blur-sm';
+      feedbackIcon.textContent = '✗';
+      feedbackIcon.className = 'text-5xl mb-1 text-wrong';
+      feedbackText.textContent = `It was ${expected}`;
+      feedbackText.className = 'text-lg font-bold text-wrong';
+      feedbackDetail.textContent = `You answered ${answer}`;
+      card.classList.add('border-wrong/50');
+      btn.classList.add('!bg-wrong/20', '!border-wrong', '!text-wrong');
+      card.classList.add('animate-shake');
+      setTimeout(() => card.classList.remove('animate-shake'), 500);
+
+      document.querySelectorAll('.answer-btn').forEach((b) => {
+        if ((b as HTMLElement).dataset.answer === expected) {
+          b.classList.add('!bg-correct/20', '!border-correct', '!text-correct');
+        }
+      });
+    }
+
+    feedbackEl.classList.remove('hidden');
+    document.getElementById('streak-count')!.textContent = String(streak);
+    document.getElementById('best-streak')!.textContent = String(bestStreak);
+
+    document.querySelectorAll('.answer-btn').forEach((b) => {
+      (b as HTMLButtonElement).disabled = true;
+      b.classList.add('opacity-50');
+    });
+    btn.classList.remove('opacity-50');
+    if (!isCorrect) {
+      document.querySelectorAll('.answer-btn').forEach((b) => {
+        if ((b as HTMLElement).dataset.answer === expected) {
+          b.classList.remove('opacity-50');
+        }
+      });
+    }
+
+    setTimeout(() => {
+      quizIndex++;
+      renderQuestion();
+    }, isCorrect ? 800 : 1500);
+  }
+
+  // ────────────────────────────────────────────────────
+  // RESULTS SCREEN
+  // ────────────────────────────────────────────────────
+  function showResults() {
+    const total = scaleNotes.length;
+    const percent = Math.round((correctCount / total) * 100);
+    const elapsed = Math.round((Date.now() - quizStartTime) / 1000);
+
+    showScreen('screen-results');
+
+    const emojiEl = document.getElementById('results-emoji')!;
+    const titleEl = document.getElementById('results-title')!;
+    const subtitleEl = document.getElementById('results-subtitle')!;
+
+    if (percent === 100) {
+      emojiEl.textContent = '🎉';
+      titleEl.textContent = 'Perfect Score!';
+      subtitleEl.textContent = `You nailed every note in ${selectedRoot} ${selectedScale}!`;
+    } else if (percent >= 80) {
+      emojiEl.textContent = '🔥';
+      titleEl.textContent = 'Almost There!';
+      subtitleEl.textContent = `Great job! Just a few notes to review.`;
+    } else if (percent >= 50) {
+      emojiEl.textContent = '💪';
+      titleEl.textContent = 'Keep Practicing!';
+      subtitleEl.textContent = `You're on the right track. Try the learn mode first.`;
+    } else {
+      emojiEl.textContent = '📚';
+      titleEl.textContent = 'Time to Study!';
+      subtitleEl.textContent = `Use Learn Mode to review the scale before trying again.`;
+    }
+
+    // Score ring animation
+    const ring = document.getElementById('score-ring') as SVGCircleElement;
+    const circumference = 2 * Math.PI * 52;
+    const offset = circumference - (percent / 100) * circumference;
+    requestAnimationFrame(() => {
+      ring.style.strokeDashoffset = String(offset);
+    });
+
+    const percentEl = document.getElementById('score-percent')!;
+    let current = 0;
+    const step = Math.max(1, Math.floor(percent / 30));
+    const counter = setInterval(() => {
+      current = Math.min(current + step, percent);
+      percentEl.textContent = `${current}%`;
+      if (current >= percent) clearInterval(counter);
+    }, 30);
+
+    document.getElementById('result-correct')!.textContent = String(correctCount);
+    document.getElementById('result-wrong')!.textContent = String(wrongCount);
+    document.getElementById('result-time')!.textContent = `${elapsed}s`;
+
+    // Missed notes
+    const missedSection = document.getElementById('missed-notes-section')!;
+    const missedList = document.getElementById('missed-notes-list')!;
+    if (missedNotes.length > 0) {
+      missedSection.classList.remove('hidden');
+      missedList.innerHTML = missedNotes.map((m) => `
+        <div class="flex items-center gap-1.5 px-2.5 py-1.5 rounded-lg bg-surface-900/80 border border-surface-800 text-xs">
+          <span class="text-surface-400">${m.degree}:</span>
+          <span class="font-bold text-wrong line-through">${m.answered}</span>
+          <span class="text-surface-500">→</span>
+          <span class="font-bold text-correct">${m.expected}</span>
+        </div>
+      `).join('');
+    } else {
+      missedSection.classList.add('hidden');
+    }
+  }
+
+  // ────────────────────────────────────────────────────
+  // BUTTON BINDINGS
+  // ────────────────────────────────────────────────────
+  document.getElementById('btn-learn')!.addEventListener('click', () => {
+    renderLearn();
+    showScreen('screen-learn');
+  });
+
+  document.getElementById('btn-play-scale')!.addEventListener('click', () => {
+    playNoteSequence(scaleNotes, 300);
+  });
+
+  document.getElementById('btn-start-quiz')!.addEventListener('click', () => {
+    startQuiz();
+  });
+
+  document.getElementById('btn-start-quiz-from-learn')!.addEventListener('click', () => {
+    startQuiz();
+  });
+
+  document.getElementById('btn-back-setup')!.addEventListener('click', () => {
+    showScreen('screen-setup');
+    showSetupStep(3); // Go back to confirm step
+  });
+
+  document.getElementById('btn-header-back')!.addEventListener('click', () => {
+    showScreen('screen-setup');
+    showSetupStep(3);
+  });
+
+  document.getElementById('btn-retry')!.addEventListener('click', () => {
+    startQuiz();
+  });
+
+  document.getElementById('btn-new-scale')!.addEventListener('click', () => {
+    selectedRoot = null;
+    selectedScale = null;
+    showScreen('screen-setup');
+    showSetupStep(1);
+    // Reset selections
+    document.querySelectorAll('.root-btn').forEach((b) => {
+      b.classList.remove('!bg-accent-500/20', '!border-accent-500', '!text-accent-400', 'ring-2', 'ring-accent-500/30');
+    });
+    document.querySelectorAll('.scale-btn').forEach((b) => {
+      b.classList.remove('!bg-accent-500/20', '!border-accent-500', '!text-accent-400');
+    });
+  });
+
+  // Keyboard shortcuts for quiz
+  document.addEventListener('keydown', (e) => {
+    if (document.getElementById('screen-quiz')!.classList.contains('hidden')) return;
+    if (isAnswering) return;
+
+    const noteKeys: Record<string, string> = {
+      'c': 'C', 'd': 'D', 'e': 'E', 'f': 'F', 'g': 'G', 'a': 'A', 'b': 'B',
+    };
+    const key = e.key.toLowerCase();
+    if (noteKeys[key]) {
+      const btn = document.querySelector(`[data-answer="${noteKeys[key]}"]`) as HTMLElement;
+      if (btn) btn.click();
+    }
+  });
+
+  // ────────────────────────────────────────────────────
+  // INIT
+  // ────────────────────────────────────────────────────
+  // Random order toggle
+  document.getElementById('toggle-random')!.addEventListener('click', () => {
+    randomOrder = !randomOrder;
+    const toggle = document.getElementById('toggle-random')!;
+    const dot = document.getElementById('toggle-random-dot')!;
+    if (randomOrder) {
+      toggle.classList.remove('bg-surface-700');
+      toggle.classList.add('bg-accent-500');
+      toggle.setAttribute('aria-checked', 'true');
+      dot.classList.remove('left-0.5', 'bg-surface-300');
+      dot.classList.add('left-[22px]', 'bg-white');
+    } else {
+      toggle.classList.remove('bg-accent-500');
+      toggle.classList.add('bg-surface-700');
+      toggle.setAttribute('aria-checked', 'false');
+      dot.classList.remove('left-[22px]', 'bg-white');
+      dot.classList.add('left-0.5', 'bg-surface-300');
+    }
+  });
+
+  renderSetup();
+</script>
