@@ -85,8 +85,8 @@
           </p>
         </div>
 
-        <div class="flex-1 overflow-y-auto -mx-4 px-4 pb-2" id="scale-list-scroll">
-          <div id="scale-type-list" class="grid grid-cols-1 gap-1.5">
+        <div class="flex-1 overflow-y-auto -mx-4 px-4 pb-4" id="scale-list-scroll">
+          <div id="scale-type-list" class="grid grid-cols-3 gap-2">
             <!-- Filled by JS -->
           </div>
         </div>
@@ -596,16 +596,36 @@
       >${note}</button>`;
     }).join('');
 
-    // Step 2: Scale types
+    // Step 2: Scale types — card grid with icons & mood
+    const SCALE_META: Record<string, { icon: string; mood: string }> = {
+      'Major (Ionian)':          { icon: '☀️', mood: 'Happy & Bright' },
+      'Natural Minor (Aeolian)': { icon: '🌙', mood: 'Sad & Melancholic' },
+      'Harmonic Minor':          { icon: '🌹', mood: 'Exotic & Dramatic' },
+      'Melodic Minor (asc.)':    { icon: '🦋', mood: 'Smooth & Jazzy' },
+      'Dorian':                  { icon: '🎷', mood: 'Groovy & Soulful' },
+      'Phrygian':                { icon: '🔥', mood: 'Dark & Mysterious' },
+      'Lydian':                  { icon: '✨', mood: 'Dreamy & Ethereal' },
+      'Mixolydian':              { icon: '🎸', mood: 'Bluesy & Bold' },
+      'Locrian':                 { icon: '🌑', mood: 'Tense & Unstable' },
+      'Major Pentatonic':        { icon: '🌈', mood: 'Cheerful & Open' },
+      'Minor Pentatonic':        { icon: '🎤', mood: 'Raw & Expressive' },
+      'Blues':                   { icon: '🎹', mood: 'Gritty & Emotional' },
+      'Whole Tone':              { icon: '🌊', mood: 'Floating & Surreal' },
+      'Diminished (H-W)':        { icon: '⚡', mood: 'Chaotic & Suspenseful' },
+    };
+
     const scaleList = document.getElementById('scale-type-list')!;
     scaleList.innerHTML = Object.keys(SCALES).map((name) => {
       const noteCount = SCALES[name].intervals.length;
+      const meta = SCALE_META[name] || { icon: '🎵', mood: 'Musical' };
       return `<button
         data-scale="${name}"
-        class="scale-btn text-left py-3.5 px-4 rounded-xl text-sm font-medium transition-all duration-200 border border-surface-800/60 bg-surface-900/40 text-surface-300 hover:bg-surface-800/60 hover:border-surface-700 active:scale-[0.98] flex items-center justify-between"
+        class="scale-btn flex flex-col items-center justify-center text-center p-3.5 rounded-xl transition-all duration-200 border border-surface-800/60 bg-surface-900/40 text-surface-300 hover:bg-surface-800/60 hover:border-surface-700 active:scale-[0.97]"
       >
-        <span>${name}</span>
-        <span class="text-[10px] text-surface-500 shrink-0 ml-2">${noteCount} notes</span>
+        <span class="text-2xl mb-1.5 drop-shadow-md">${meta.icon}</span>
+        <span class="text-[11px] sm:text-sm font-bold leading-tight mb-0.5">${name}</span>
+        <span class="text-[9px] sm:text-[10px] text-surface-500 italic leading-tight">${meta.mood}</span>
+        <span class="text-[9px] text-surface-600 mt-1 font-mono">${noteCount} notes</span>
       </button>`;
     }).join('');
 
