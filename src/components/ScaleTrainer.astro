@@ -108,13 +108,23 @@
         </div>
 
         <!-- Quiz Options -->
-        <div class="mb-6 flex items-center justify-between p-4 rounded-2xl bg-surface-900/60 border border-surface-800/60">
+        <div class="mb-3 flex items-center justify-between p-4 rounded-2xl bg-surface-900/60 border border-surface-800/60">
           <div>
             <p class="text-sm font-medium text-surface-200">Random Order</p>
             <p class="text-[10px] text-surface-500">Shuffle the degree order each quiz</p>
           </div>
           <button id="toggle-random" type="button" role="switch" aria-checked="false" class="relative w-11 h-6 rounded-full bg-surface-700 transition-colors duration-200 shrink-0">
             <span id="toggle-random-dot" class="absolute top-0.5 left-0.5 w-5 h-5 rounded-full bg-surface-300 transition-all duration-200 shadow-sm"></span>
+          </button>
+        </div>
+
+        <div class="mb-6 flex items-center justify-between p-4 rounded-2xl bg-surface-900/60 border border-surface-800/60">
+          <div>
+            <p class="text-sm font-medium text-surface-200">Unlimited Mode</p>
+            <p class="text-[10px] text-surface-500">No end — keep going until you stop</p>
+          </div>
+          <button id="toggle-unlimited" type="button" role="switch" aria-checked="false" class="relative w-11 h-6 rounded-full bg-surface-700 transition-colors duration-200 shrink-0">
+            <span id="toggle-unlimited-dot" class="absolute top-0.5 left-0.5 w-5 h-5 rounded-full bg-surface-300 transition-all duration-200 shadow-sm"></span>
           </button>
         </div>
 
@@ -205,10 +215,15 @@
               <svg class="w-3.5 h-3.5 text-wrong" fill="currentColor" viewBox="0 0 20 20"><path fill-rule="evenodd" d="M4.293 4.293a1 1 0 011.414 0L10 8.586l4.293-4.293a1 1 0 111.414 1.414L11.414 10l4.293 4.293a1 1 0 01-1.414 1.414L10 11.414l-4.293 4.293a1 1 0 01-1.414-1.414L8.586 10 4.293 5.707a1 1 0 010-1.414z" clip-rule="evenodd"/></svg>
               <span id="quiz-wrong-count" class="font-mono font-bold text-wrong">0</span>
             </div>
+            <!-- End Quiz button (unlimited mode) -->
+            <button id="btn-end-quiz" class="hidden items-center gap-1 ml-2 py-1 px-3 rounded-lg text-[10px] font-bold uppercase tracking-wider border border-surface-600 bg-surface-800 text-surface-300 hover:bg-surface-700 hover:border-surface-500 transition-all duration-200 active:scale-95">
+              <svg class="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"/></svg>
+              End
+            </button>
           </div>
         </div>
         <!-- Progress Bar -->
-        <div class="w-full h-1 bg-surface-800 rounded-full overflow-hidden">
+        <div id="quiz-progress-container" class="w-full h-1 bg-surface-800 rounded-full overflow-hidden">
           <div id="quiz-progress-bar" class="h-full bg-gradient-to-r from-accent-500 to-purple-500 rounded-full transition-all duration-500 ease-out" style="width: 0%"></div>
         </div>
       </div>
@@ -388,6 +403,8 @@
   let bestStreak = parseInt(localStorage.getItem('sn_best_streak') || '0');
   let isAnswering = false;
   let randomOrder = false;
+  let unlimitedMode = false;
+  let totalAnswered = 0;
   let quizOrder: number[] = [];
 
   // ────────────────────────────────────────────────────
@@ -777,20 +794,38 @@
     quizIndex = 0;
     correctCount = 0;
     wrongCount = 0;
+    totalAnswered = 0;
     missedNotes = [];
     quizStartTime = Date.now();
     isAnswering = false;
 
     // Build quiz order — sequential or shuffled
     quizOrder = Array.from({ length: scaleNotes.length }, (_, i) => i);
-    if (randomOrder) {
+    if (randomOrder || unlimitedMode) {
       quizOrder = shuffleArray(quizOrder);
     }
 
     document.getElementById('streak-count')!.textContent = String(streak);
     document.getElementById('best-streak')!.textContent = String(bestStreak);
 
-    document.getElementById('quiz-scale-label')!.textContent = `${selectedRoot} ${selectedScale}${randomOrder ? ' · Shuffled' : ''}`;
+    const labels: string[] = [];
+    if (randomOrder) labels.push('Shuffled');
+    if (unlimitedMode) labels.push('∞ Unlimited');
+    const suffix = labels.length > 0 ? ` · ${labels.join(' · ')}` : '';
+    document.getElementById('quiz-scale-label')!.textContent = `${selectedRoot} ${selectedScale}${suffix}`;
+
+    // Show/hide unlimited mode UI elements
+    const endBtn = document.getElementById('btn-end-quiz')!;
+    const progressContainer = document.getElementById('quiz-progress-container')!;
+    if (unlimitedMode) {
+      endBtn.classList.remove('hidden');
+      endBtn.classList.add('inline-flex');
+      progressContainer.classList.add('hidden');
+    } else {
+      endBtn.classList.add('hidden');
+      endBtn.classList.remove('inline-flex');
+      progressContainer.classList.remove('hidden');
+    }
 
     showScreen('screen-quiz');
     renderQuestion();
@@ -798,19 +833,30 @@
 
   function renderQuestion() {
     if (quizIndex >= quizOrder.length) {
-      showResults();
-      return;
+      if (unlimitedMode) {
+        // Reshuffle and loop
+        quizIndex = 0;
+        quizOrder = Array.from({ length: scaleNotes.length }, (_, i) => i);
+        quizOrder = shuffleArray(quizOrder);
+      } else {
+        showResults();
+        return;
+      }
     }
 
     isAnswering = false;
     const scale = SCALES[selectedScale!];
     const total = scaleNotes.length;
-    const progress = ((quizIndex) / total) * 100;
     const degreeIdx = quizOrder[quizIndex];
 
-    document.getElementById('quiz-progress-text')!.textContent = `${quizIndex + 1} / ${total}`;
-    (document.getElementById('quiz-progress-bar') as HTMLElement).style.width = `${progress}%`;
-    document.getElementById('quiz-degree-label')!.textContent = `#${quizIndex + 1}`;
+    if (unlimitedMode) {
+      document.getElementById('quiz-progress-text')!.textContent = `#${totalAnswered + 1}`;
+    } else {
+      const progress = ((quizIndex) / total) * 100;
+      document.getElementById('quiz-progress-text')!.textContent = `${quizIndex + 1} / ${total}`;
+      (document.getElementById('quiz-progress-bar') as HTMLElement).style.width = `${progress}%`;
+    }
+    document.getElementById('quiz-degree-label')!.textContent = `#${totalAnswered + 1}`;
     document.getElementById('quiz-question')!.textContent = `${scale.degreeNames[degreeIdx]} degree?`;
     document.getElementById('quiz-question-sub')!.textContent = `of ${selectedRoot} ${selectedScale}`;
     document.getElementById('quiz-correct-count')!.textContent = String(correctCount);
@@ -923,6 +969,7 @@
       });
     }
 
+    totalAnswered++;
     setTimeout(() => {
       quizIndex++;
       renderQuestion();
@@ -933,8 +980,8 @@
   // RESULTS SCREEN
   // ────────────────────────────────────────────────────
   function showResults() {
-    const total = scaleNotes.length;
-    const percent = Math.round((correctCount / total) * 100);
+    const total = unlimitedMode ? totalAnswered : scaleNotes.length;
+    const percent = total > 0 ? Math.round((correctCount / total) * 100) : 0;
     const elapsed = Math.round((Date.now() - quizStartTime) / 1000);
 
     showScreen('screen-results');
@@ -946,19 +993,27 @@
     if (percent === 100) {
       emojiEl.textContent = '🎉';
       titleEl.textContent = 'Perfect Score!';
-      subtitleEl.textContent = `You nailed every note in ${selectedRoot} ${selectedScale}!`;
+      subtitleEl.textContent = unlimitedMode
+        ? `Flawless across ${totalAnswered} questions in ${selectedRoot} ${selectedScale}!`
+        : `You nailed every note in ${selectedRoot} ${selectedScale}!`;
     } else if (percent >= 80) {
       emojiEl.textContent = '🔥';
       titleEl.textContent = 'Almost There!';
-      subtitleEl.textContent = `Great job! Just a few notes to review.`;
+      subtitleEl.textContent = unlimitedMode
+        ? `${totalAnswered} questions answered. Great session!`
+        : `Great job! Just a few notes to review.`;
     } else if (percent >= 50) {
       emojiEl.textContent = '💪';
       titleEl.textContent = 'Keep Practicing!';
-      subtitleEl.textContent = `You're on the right track. Try the learn mode first.`;
+      subtitleEl.textContent = unlimitedMode
+        ? `${totalAnswered} questions answered. You're building muscle memory!`
+        : `You're on the right track. Try the learn mode first.`;
     } else {
       emojiEl.textContent = '📚';
       titleEl.textContent = 'Time to Study!';
-      subtitleEl.textContent = `Use Learn Mode to review the scale before trying again.`;
+      subtitleEl.textContent = unlimitedMode
+        ? `${totalAnswered} questions answered. Try Learn Mode to review.`
+        : `Use Learn Mode to review the scale before trying again.`;
     }
 
     // Score ring animation
@@ -982,12 +1037,13 @@
     document.getElementById('result-wrong')!.textContent = String(wrongCount);
     document.getElementById('result-time')!.textContent = `${elapsed}s`;
 
-    // Missed notes
+    // Missed notes (show unique missed notes in unlimited mode, limit to last 20)
     const missedSection = document.getElementById('missed-notes-section')!;
     const missedList = document.getElementById('missed-notes-list')!;
-    if (missedNotes.length > 0) {
+    const displayMissed = unlimitedMode ? missedNotes.slice(-20) : missedNotes;
+    if (displayMissed.length > 0) {
       missedSection.classList.remove('hidden');
-      missedList.innerHTML = missedNotes.map((m) => `
+      missedList.innerHTML = displayMissed.map((m) => `
         <div class="flex items-center gap-1.5 px-2.5 py-1.5 rounded-lg bg-surface-900/80 border border-surface-800 text-xs">
           <span class="text-surface-400">${m.degree}:</span>
           <span class="font-bold text-wrong line-through">${m.answered}</span>
@@ -995,6 +1051,9 @@
           <span class="font-bold text-correct">${m.expected}</span>
         </div>
       `).join('');
+      if (unlimitedMode && missedNotes.length > 20) {
+        missedList.insertAdjacentHTML('beforeend', `<div class="text-[10px] text-surface-500 w-full text-center mt-1">… and ${missedNotes.length - 20} more</div>`);
+      }
     } else {
       missedSection.classList.add('hidden');
     }
@@ -1028,6 +1087,10 @@
   document.getElementById('btn-header-back')!.addEventListener('click', () => {
     showScreen('screen-setup');
     showSetupStep(3);
+  });
+
+  document.getElementById('btn-end-quiz')!.addEventListener('click', () => {
+    showResults();
   });
 
   document.getElementById('btn-retry')!.addEventListener('click', () => {
@@ -1066,25 +1129,30 @@
   // ────────────────────────────────────────────────────
   // INIT
   // ────────────────────────────────────────────────────
-  // Random order toggle
-  document.getElementById('toggle-random')!.addEventListener('click', () => {
-    randomOrder = !randomOrder;
-    const toggle = document.getElementById('toggle-random')!;
-    const dot = document.getElementById('toggle-random-dot')!;
-    if (randomOrder) {
-      toggle.classList.remove('bg-surface-700');
-      toggle.classList.add('bg-accent-500');
-      toggle.setAttribute('aria-checked', 'true');
-      dot.classList.remove('left-0.5', 'bg-surface-300');
-      dot.classList.add('left-[22px]', 'bg-white');
-    } else {
-      toggle.classList.remove('bg-accent-500');
-      toggle.classList.add('bg-surface-700');
-      toggle.setAttribute('aria-checked', 'false');
-      dot.classList.remove('left-[22px]', 'bg-white');
-      dot.classList.add('left-0.5', 'bg-surface-300');
-    }
-  });
+  // Toggle helper
+  function setupToggle(btnId: string, dotId: string, getter: () => boolean, setter: (v: boolean) => void) {
+    document.getElementById(btnId)!.addEventListener('click', () => {
+      setter(!getter());
+      const toggle = document.getElementById(btnId)!;
+      const dot = document.getElementById(dotId)!;
+      if (getter()) {
+        toggle.classList.remove('bg-surface-700');
+        toggle.classList.add('bg-accent-500');
+        toggle.setAttribute('aria-checked', 'true');
+        dot.classList.remove('left-0.5', 'bg-surface-300');
+        dot.classList.add('left-[22px]', 'bg-white');
+      } else {
+        toggle.classList.remove('bg-accent-500');
+        toggle.classList.add('bg-surface-700');
+        toggle.setAttribute('aria-checked', 'false');
+        dot.classList.remove('left-[22px]', 'bg-white');
+        dot.classList.add('left-0.5', 'bg-surface-300');
+      }
+    });
+  }
+
+  setupToggle('toggle-random', 'toggle-random-dot', () => randomOrder, (v) => { randomOrder = v; });
+  setupToggle('toggle-unlimited', 'toggle-unlimited-dot', () => unlimitedMode, (v) => { unlimitedMode = v; });
 
   renderSetup();
 </script>
