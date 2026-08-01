@@ -8,7 +8,8 @@ Built with **Astro**, **Tailwind CSS v4**, and the native **Web Audio API**.
 
 ## ✨ Features
 
-- **Guided 3-Step Setup**: Effortlessly select a root note, pick a scale formula, preview notes, and choose quiz settings (such as random order shuffling).
+- **Guided 3-Step Setup**: Effortlessly select a root note, pick a scale formula, preview notes, and choose quiz settings (random order shuffling & unlimited mode).
+- **Visual Scale Selector**: 3-column card grid with emoji icons and mood/character descriptors for each scale type (e.g. ☀️ "Happy & Bright" for Major, 🔥 "Dark & Mysterious" for Phrygian).
 - **Interactive Learn Mode**:
   - Visual note cards displaying scale degrees (`1st`, `♭3rd`, `5th`, etc.).
   - 2-octave interactive **Piano Visualizer** showing scale positions on key layouts.
@@ -19,10 +20,16 @@ Built with **Astro**, **Tailwind CSS v4**, and the native **Web Audio API**.
   - Real-time visual and audio feedback on correct/wrong answers.
   - Active streak & best streak tracking persisted via `localStorage`.
   - Keyboard shortcuts (`C`, `D`, `E`, `F`, `G`, `A`, `B`) for fast responsive quizzing.
+- **Unlimited Quiz Mode** ♾️:
+  - Toggle in Step 3 setup — quiz loops endlessly, reshuffling after each pass through the scale.
+  - Progress bar is replaced by a running question counter (`#1`, `#2`, `#3`, …).
+  - Manual "End" button in the quiz header to finish and see results at any time.
+  - Results screen adapts to show total questions answered and caps missed notes display at the last 20.
 - **Comprehensive Results Screen**:
   - Animated SVG circular score percentage display.
   - Total duration time tracking and correct/wrong counts.
   - Missed notes breakdown highlighting target degrees, user answers, and correct answers.
+  - Context-aware messaging for both standard and unlimited mode sessions.
 - **14 Supported Scale Formulas**:
   - Major (Ionian), Natural Minor (Aeolian), Harmonic Minor, Melodic Minor (asc.)
   - Modes: Dorian, Phrygian, Lydian, Mixolydian, Locrian
@@ -34,7 +41,7 @@ Built with **Astro**, **Tailwind CSS v4**, and the native **Web Audio API**.
 
 ### Core Technologies
 
-- **Framework**: [Astro v5](https://astro.build/) — Static Site Generation (SSG) for fast initial load times.
+- **Framework**: [Astro v7](https://astro.build/) — Static Site Generation (SSG) for fast initial load times.
 - **Styling**: [Tailwind CSS v4](https://tailwindcss.com/) — Native CSS theme configuration (`@theme`) with custom OKLCH color palettes, note degree highlights, glassmorphism UI tokens, and keyframe animations.
 - **Audio Engine**: **Web Audio API** — Zero-dependency, client-side synthesized piano sound generator.
 - **Typography**: Google Fonts (`Inter` for UI layout and `JetBrains Mono` for numerical degree data and metrics).
@@ -61,14 +68,14 @@ src/
 
 1. **Setup Screen (`#screen-setup`)**:
    - **Step 1**: Root Note grid selection (12 chromatic pitch roots).
-   - **Step 2**: Scale selection list (14 formulas with note counts).
-   - **Step 3**: Confirmation panel, clickable note preview, and random order shuffle toggle.
+   - **Step 2**: Scale selection — 3-column visual card grid with emoji icons, mood descriptors, and note counts per scale.
+   - **Step 3**: Confirmation panel, clickable note preview, random order shuffle toggle, and unlimited mode toggle.
 2. **Learn Screen (`#screen-learn`)**:
    - Interactive note cards, 2-octave piano keyboard canvas, interval step sequence, and full scale audio auditioning.
 3. **Quiz Screen (`#screen-quiz`)**:
-   - Step progress bar, degree prompt, 12-note answer grid, keyboard event listeners, and animated visual feedback.
+   - Step progress bar (standard mode) or running question counter (unlimited mode), degree prompt, 12-note answer grid, keyboard event listeners, animated visual feedback, and "End" button for unlimited sessions.
 4. **Results Screen (`#screen-results`)**:
-   - SVG circle stroke animation, summary metrics, missed note diagnostic list, and session retry handles.
+   - SVG circle stroke animation, summary metrics, missed note diagnostic list (capped at 20 in unlimited mode), and session retry handles. Context-aware result messages adapt to the quiz mode.
 
 #### Music Theory & Data Engine
 
@@ -95,7 +102,8 @@ MemorizeScaleNotes/
 │   └── workflows/
 │       └── deploy.yml          # GitHub Actions workflow for automatic GitHub Pages deployment
 ├── public/
-│   └── favicon.svg             # App favicon asset
+│   ├── favicon.ico             # App favicon (ICO)
+│   └── favicon.svg             # App favicon (SVG)
 ├── src/
 │   ├── components/
 │   │   └── ScaleTrainer.astro  # Interactive scale memorization trainer component
